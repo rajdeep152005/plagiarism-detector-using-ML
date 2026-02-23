@@ -31,7 +31,12 @@ We use the Term Frequency-Inverse Document Frequency (TF-IDF) vectorizer to tran
 # Creating the Flask Web Application
 
 To make our plagiarism detector easily accessible, we create a Flask web application. This application will provide a user interface where users can input two text documents and receive a plagiarism score.
-
+![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)
+![Machine Learning](https://img.shields.io/badge/Machine-Learning-orange)
+![NLP](https://img.shields.io/badge/NLP-green)
+![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-yellow?logo=scikitlearn)
+![Status](https://img.shields.io/badge/Status-Completed-brightgreen)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=rajdeep152005.plagiarism-detector-using-ML)
 
 
 
