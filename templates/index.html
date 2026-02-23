@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Plagiarism & Web Source Detector</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Basic modern styling -->
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e293b, #4f46e5);
+            --card-bg: rgba(15, 23, 42, 0.9);
+            --accent: #6366f1;
+            --accent-soft: rgba(99, 102, 241, 0.15);
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-gradient);
+            font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-main);
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(251, 191, 36, 0.08), transparent 55%),
+                        radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.1), transparent 55%);
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            max-width: 1100px;
+            margin: 24px;
+            padding: 24px;
+            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.8));
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            backdrop-filter: blur(16px);
+            display: grid;
+            grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .title-block h1 {
+            font-size: 1.7rem;
+            margin: 0;
+            letter-spacing: 0.03em;
+        }
+
+        .title-block p {
+            margin: 4px 0 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .chip {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.7);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chip-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
+        }
+
+        form {
+            margin-top: 8px;
+        }
+
+        .label {
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-muted);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 180px;
+            resize: vertical;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            padding: 12px 14px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            color: var(--text-main);
+            background: rgba(15, 23, 42, 0.85);
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        textarea::placeholder {
+            color: rgba(148, 163, 184, 0.7);
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
+            background: rgba(15, 23, 42, 0.95);
+        }
+
+        .actions {
+            margin-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: radial-gradient(circle at top left, #a855f7, #6366f1);
+            color: white;
+            box-shadow: 0 10px 25px rgba(67, 56, 202, 0.55);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+        }
+
+        .btn-primary span.icon {
+            font-size: 1rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.06);
+            box-shadow: 0 14px 32px rgba(67, 56, 202, 0.75);
+        }
+
+        .btn-primary:active {
+            transform: translateY(1px);
+            box-shadow: 0 8px 20px rgba(67, 56, 202, 0.6);
+        }
+
+        .hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Right side panels */
+
+        .side-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .panel {
+            border-radius: 14px;
+            padding: 14px 14px 12px;
+            background: var(--card-bg);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: rgba(15, 23, 42, 0.8);
+            color: var(--text-muted);
+        }
+
+        .result-text {
+            font-size: 0.9rem;
+            margin: 4px 0 0;
+        }
+
+        .result-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .result-pill.danger {
+            background: rgba(248, 113, 113, 0.15);
+            color: #fecaca;
+            border: 1px solid rgba(248, 113, 113, 0.6);
+        }
+
+        .result-pill.success {
+            background: rgba(52, 211, 153, 0.12);
+            color: #bbf7d0;
+            border: 1px solid rgba(52, 211, 153, 0.6);
+        }
+
+        .result-pill.neutral {
+            background: rgba(148, 163, 184, 0.16);
+            color: var(--text-muted);
+            border: 1px solid rgba(148, 163, 184, 0.5);
+        }
+
+        .sources-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 4px 0 0;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .sources-list li {
+            padding: 8px 7px;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(30, 64, 175, 0.45);
+            margin-bottom: 6px;
+        }
+
+        .source-title {
+            font-size: 0.85rem;
+            margin: 0 0 4px;
+            color: #e5e7eb;
+        }
+
+        .source-snippet {
+            font-size: 0.78rem;
+            margin: 0 0 4px;
+            color: var(--text-muted);
+        }
+
+        .source-link {
+            font-size: 0.75rem;
+            color: #60a5fa;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .source-link:hover {
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin: 4px 0 2px;
+        }
+
+        .footer-note {
+            margin-top: 10px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+<div class="overlay"></div>
+
+<div class="container">
+    <!-- LEFT: Input area -->
+    <div>
+        <div class="header">
+            <div class="title-block">
+                <h1>AI Plagiarism & Web Source Detector</h1>
+                <p>Check if your text looks copied and discover possible web sources in one click.</p>
+            </div>
+            <div class="chip">
+                <span class="chip-dot"></span>
+                Minor Project · ML + Flask
+            </div>
+        </div>
+
+        <form action="/detect" method="post">
+            <div class="label">
+                <span>Paste or type your text</span>
+                <span>{{ (input_text|length) if input_text else 0 }} characters</span>
+            </div>
+
+            <textarea
+                    name="text"
+                    placeholder="Example: Paste an assignment paragraph here to check if it matches web content or looks plagiarized...">{{ input_text or '' }}</textarea>
+
+            <div class="actions">
+                <button type="submit" class="btn-primary">
+                    <span class="icon">⚡</span>
+                    <span>Analyze Text</span>
+                </button>
+                <span class="hint">
+                    Your text is processed locally by the model. Web matching uses a search API (SerpAPI).
+                </span>
+            </div>
+        </form>
+
+        <div class="footer-note">
+            Future scope: file uploads (PDF/Word), similarity percentage, and multi-document comparison.
+        </div>
+    </div>
+
+    <!-- RIGHT: Results area -->
+    <div class="side-column">
+        <!-- ML Result Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Plagiarism Detection (ML Model)</h2>
+                <span class="badge">SVM + TF-IDF</span>
+            </div>
+
+            {% if result %}
+                {% if "Plagiarism Detected" in result %}
+                    <div class="result-pill danger">
+                        <span>⚠</span>
+                        <span>{{ result }}</span>
+                    </div>
+                    <p class="result-text">
+                        The model believes this text is <strong>likely copied</strong> or highly similar to its training data.
+                    </p>
+                {% elif "No Plagiarism" in result %}
+                    <div class="result-pill success">
+                        <span>✔</span>
+                        <span>{{ result }}</span>
+                    </div>
+                    <p class="result-text">
+                        The model did not find strong signs of plagiarism. This text looks more <strong>original</strong>.
+                    </p>
+                {% else %}
+                    <div class="result-pill neutral">
+                        <span>ℹ</span>
+                        <span>{{ result }}</span>
+                    </div>
+                {% endif %}
+            {% else %}
+                <p class="empty-state">
+                    Run an analysis to see if your text appears plagiarized according to the machine learning model.
+                </p>
+            {% endif %}
+        </div>
+
+        <!-- Web Source Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Possible Web Sources</h2>
+                <span class="badge">SerpAPI · Google Search</span>
+            </div>
+
+            {% if web_sources and web_sources|length > 0 %}
+                <ul class="sources-list">
+                    {% for source in web_sources %}
+                        <li>
+                            <p class="source-title">{{ source.title }}</p>
+                            {% if source.snippet %}
+                                <p class="source-snippet">{{ source.snippet }}</p>
+                            {% endif %}
+                            {% if source.link %}
+                                <a href="{{ source.link }}" target="_blank" rel="noopener noreferrer" class="source-link">
+                                    {{ source.link }}
+                                </a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="empty-state">
+                    No web sources are displayed yet. Either the API key is not configured or no strong matches were found.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</body>
+</html>
